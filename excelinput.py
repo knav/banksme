@@ -2,9 +2,11 @@ import pandas as pd
 import numpy as np
 import sys
 from company import Company
+from openpyxl import Workbook
 
 # Path to the file to be analysed
-wb_path = r'/Users/navneeeth99/Desktop/Financial Reports/DBS 1.xls'
+# wb_path = r'/Users/navneeeth99/Desktop/Financial Reports/DBS 1.xls'
+wb_path = r'C:\Users\Navneeth\Documents\WORK\BankSME\Programming\Financial Reports\DBS 1.xls'
 
 # Find the worksheets with the balance sheet and income statement.
 # If unable to find, get user input.
@@ -280,3 +282,4 @@ print()
 
 comp_data = Company(2010, assets, liabeq, incst)
 comp_data.getindustry()
+

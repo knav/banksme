@@ -153,70 +153,127 @@ mergedfs = pd.concat([bsheet, instat, cfstat], keys=["bs", "is", "cf"])
 mergedfs.index = range(0, mergedfs.shape[0])
 
 # Get list of all the labels in the first column
-label_col = bsheet.iloc[:, 0]
+label_col = mergedfs.iloc[:, 0]
 label_list = label_col.tolist()
 
 # Setup the dataframes for assets, liabeq and incst
 assets_df = pd.DataFrame({'Labels': ['Current Assets', 'Accounts Receivable', 'Marketable Securities',
-                                     'Loans', 'Cash', 'Inventory', 'PPE']})
+                                     'Loans', 'Cash', 'Inventory', 'PPE', 'Total Assets']}, columns=mergedfs.columns)
 liabeq_df = pd.DataFrame({'Labels': ['Current Liabilities', 'Long-term Debt', 'Deposits', 'Total Equity',
-                                     'Total Liabilities']})
+                                     'Total Liabilities', 'Total Liabilities and Equity']}, columns=mergedfs.columns)
 incst_df = pd.DataFrame({'Labels': ['Cost of Goods Sold', 'Net Profit', 'Revenue', 'Net interest income',
-                                    'Non-interest income', 'Interest Expense', 'EBIT', 'EBITDA']})
+                                    'Non-interest income', 'Interest Expense', 'EBIT', 'EBITDA']},
+                        columns=mergedfs.columns)
 
 # Dictionary to save relevant index of columns
-assets = {'Current Assets': 0,
-          'Accounts Receivable': 0,
-          'Marketable Securities': 0,
-          'Loans': 0,
-          'Cash': 0,
-          'Inventory': 0,
-          'PPE': 0}
+assets_index = {'Current Assets': 0,
+                'Accounts Receivable': 0,
+                'Marketable Securities': 0,
+                'Loans': 0,
+                'Cash': 0,
+                'Inventory': 0,
+                'PPE': 0,
+                'Total Assets': 0}
 
-liabeq = {'Current Liabilities': 0,
-          'Long-term Debt': 0,
-          'Deposits': 0,
-          'Total Equity': 0,
-          'Total Liabilities': 0}
+liabeq_index = {'Current Liabilities': 0,
+                'Long-term Debt': 0,
+                'Deposits': 0,
+                'Total Equity': 0,
+                'Total Liabilities': 0,
+                'Total Liabilities and Equity': 0}
 
-incst = {'Cost of Goods Sold': 0,
-         'Net Profit': 0,
-         'Revenue': 0,
-         'Net interest income': 0,
-         'Non-interest income': 0,
-         'Interest Expense': 0,
-         'EBIT': 0,
-         'EBITDA': 0}
+incst_index = {'Cost of Goods Sold': 0,
+               'Net Profit': 0,
+               'Revenue': 0,
+               'Net interest income': 0,
+               'Non-interest income': 0,
+               'Interest Expense': 0,
+               'EBIT': 0,
+               'EBITDA': 0}
 
 # Labels to search for each value
-alt_assets = {'Current Assets': ["Total Current Assets", "Net Current Assets", "Current Assets"],
+alt_assets = {'Current Assets': ["Total Current Assets", "Current Assets"],
               'Accounts Receivable': ["Accounts Receivable"],
               'Marketable Securities': ["Marketable Securities", "Short Term Investments", "Short-term Investments"],
               'Loans': ["Loans"],
               'Cash': ["Cash and Equivalents", "Cash and cash equivalents", "Cash"],
               'Inventory': ["Inventory", "Inventories"],
               'PPE': ["Property, Plant & Equipment", "PPE", "Property and equipment"],
-              'Total Assets': ["Total Assets", "Net Assets"]}
+              'Total Assets': ["Total Assets"]}
 
-alt_liabeq = {'Current Liabilities': ["Total Current Liabilities", "Net Current Liabilities", "Current Liabilities"],
+alt_liabeq = {'Current Liabilities': ["Total Current Liabilities", "Current Liabilities"],
               'Long-term Debt': ["Long Term Debt", "Long-term Debt"],
               'Deposits': ["Deposits"],
-              'Total Equity': ["Total Equity", "Net Equity", "Shareholders' Equity", "Total Shareholders' Equity",
-                               "Net Shareholders' Equity", "Total stockholders' equity", "Net stockholders' equity"],
+              'Total Equity': ["Total Equity", "Shareholders' Equity", "Total Shareholders' Equity",
+                               "Total stockholders' equity"],
               'Total Liabilities': ["Total Liabilities"],
-              'Total Liabilities and Equity': ["Total Liabilities And Equity", "Net Liabilities And Equity",
+              'Total Liabilities and Equity': ["Total Liabilities And Equity",
                                                "Total Liabilities And Shareholders' Equity",
-                                               "Net Liabilities And Shareholders' Equity",
-                                               "Total Liabilities And Stockholders' Equity",
-                                               "Net Liabilities And Stockholders' Equity"]}
+                                               "Total Liabilities And Stockholders' Equity"]}
 
 alt_incst = {'Cost of Goods Sold': ["Cost of Goods Sold", "Cost of Revenue", "Cost of Sales", "Cost of net revenues"],
-             'Net Profit': ["Net Profit", "Total Profit", "Net Income", "Total Income"],
-             'Revenue': ["Total revenue", "Net revenue", "Revenue"],
+             'Net Profit': ["Total Profit", "Total Income"],
+             'Revenue': ["Total revenue", "Revenue"],
              'Net interest income':['Net interest income', 'Net-interest income'],
              'Non-interest income': ['Non-interest income', 'Noninterest income', 'Non interest income'],
              'Interest Expense': ["Interest Expense"],
              'EBIT': ["EBIT"],
              'EBITDA': ["EBITDA"]}
 
+# Loop through and fill up indexes, indexes that cannot be found are given np.nan
+for a in assets_index:
+    a_labels = [s for s in label_list if any(xs.casefold() in s.casefold() for xs in alt_assets[a])]
+    a_indexes = [label_list.index(n) for n in a_labels]
 
+    if len(a_indexes) > 1:
+        all_vals = {}
+        for v in a_indexes:
+            all_vals[v] = mergedfs.iat[v, 1]
+
+        max_val = max(list(all_vals.values()))
+        assets_index[a] = list(all_vals.keys())[list(all_vals.values()).index(max_val)]
+    elif len(a_indexes) == 1:
+        assets_index[a] = a_indexes[0]
+    else:
+        assets_index[a] = np.nan
+
+for le in liabeq_index:
+    le_labels = [s for s in label_list if any(xs.casefold() in s.casefold() for xs in alt_liabeq[le])]
+    le_indexes = [label_list.index(n) for n in le_labels]
+
+    if len(le_indexes) > 1:
+        all_vals = {}
+        for v in le_indexes:
+            all_vals[v] = mergedfs.iat[v, 1]
+
+        max_val = max(list(all_vals.values()))
+        liabeq_index[le] = list(all_vals.keys())[list(all_vals.values()).index(max_val)]
+    elif len(le_indexes) == 1:
+        liabeq_index[le] = le_indexes[0]
+    else:
+        liabeq_index[le] = np.nan
+
+for i in incst_index:
+    i_labels = [s for s in label_list if any(xs.casefold() in s.casefold() for xs in alt_incst[i])]
+    i_indexes = [label_list.index(n) for n in i_labels]
+
+    if len(i_indexes) > 1:
+        all_vals = {}
+        for v in i_indexes:
+            all_vals[v] = mergedfs.iat[v, 1]
+
+        max_val = max(list(all_vals.values()))
+        incst_index[i] = list(all_vals.keys())[list(all_vals.values()).index(max_val)]
+    elif len(i_indexes) == 1:
+        incst_index[i] = i_indexes[0]
+    else:
+        incst_index[i] = np.nan
+
+# mergedfs.to_excel(r'C:\Users\Navneeth\Documents\WORK\BankSME\Programming\banksme\outbound\mergedfs.xlsx', header=True,
+#                   index=True, na_rep='NAN')
+
+print(assets_index)
+print()
+print(liabeq_index)
+print()
+print(incst_index)

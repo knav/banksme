@@ -156,14 +156,15 @@ mergedfs.index = range(0, mergedfs.shape[0])
 label_col = mergedfs.iloc[:, 0]
 label_list = label_col.tolist()
 
-# Setup the dataframes for assets, liabeq and incst
-assets_df = pd.DataFrame({'Labels': ['Current Assets', 'Accounts Receivable', 'Marketable Securities',
-                                     'Loans', 'Cash', 'Inventory', 'PPE', 'Total Assets']}, columns=mergedfs.columns)
-liabeq_df = pd.DataFrame({'Labels': ['Current Liabilities', 'Long-term Debt', 'Deposits', 'Total Equity',
-                                     'Total Liabilities', 'Total Liabilities and Equity']}, columns=mergedfs.columns)
-incst_df = pd.DataFrame({'Labels': ['Cost of Goods Sold', 'Net Profit', 'Revenue', 'Net interest income',
-                                    'Non-interest income', 'Interest Expense', 'EBIT', 'EBITDA']},
-                        columns=mergedfs.columns)
+# Setup the dictionaries for assets, liabeq and incst
+assets = {'Current Assets': [], 'Accounts Receivable': [], 'Marketable Securities': [], 'Loans': [],
+          'Cash': [], 'Inventory': [], 'PPE': [], 'Total Assets': []}
+
+liabeq = {'Current Liabilities': [], 'Long-term Debt': [], 'Deposits': [], 'Total Equity': [],
+                'Total Liabilities': [], 'Total Liabilities and Equity': []}
+
+incst = {'Cost of Goods Sold': [], 'Net Profit': [], 'Revenue': [], 'Net interest income': [],
+         'Non-interest income': [], 'Interest Expense': [], 'EBIT': [], 'EBITDA': []}
 
 # Dictionary to save relevant index of columns
 assets_index = {'Current Assets': 0,
@@ -237,6 +238,8 @@ for a in assets_index:
     else:
         assets_index[a] = np.nan
 
+# Insert check for total assets?
+
 for le in liabeq_index:
     le_labels = [s for s in label_list if any(xs.casefold() in s.casefold() for xs in alt_liabeq[le])]
     le_indexes = [label_list.index(n) for n in le_labels]
@@ -252,6 +255,8 @@ for le in liabeq_index:
         liabeq_index[le] = le_indexes[0]
     else:
         liabeq_index[le] = np.nan
+
+# Insert check for total liability and equity?
 
 for i in incst_index:
     i_labels = [s for s in label_list if any(xs.casefold() in s.casefold() for xs in alt_incst[i])]
@@ -272,8 +277,63 @@ for i in incst_index:
 # mergedfs.to_excel(r'C:\Users\Navneeth\Documents\WORK\BankSME\Programming\banksme\outbound\mergedfs.xlsx', header=True,
 #                   index=True, na_rep='NAN')
 
-print(assets_index)
+for i in assets.keys():
+    i_pos = assets_index[i]
+    if i == 'Total Assets':
+        if not np.isnan(i_pos):
+            assets[i] = mergedfs.iloc[i_pos, 1:].tolist()
+        else:
+            assets[i] = [np.nan] * (mergedfs.shape[1] - 1)
+    else:
+        if not np.isnan(i_pos):
+            assets[i] = np.multiply(np.divide(mergedfs.iloc[i_pos, 1:].tolist(),
+                                              mergedfs.iloc[assets_index['Total Assets'], 1:]),
+                                    [100]*len(mergedfs.iloc[i_pos, 1:].tolist()))
+        else:
+            assets[i] = [np.nan] * (mergedfs.shape[1] - 1)
+
+assets_df = pd.DataFrame.from_dict(assets, orient='index')
+assets_df.insert(0, 'Labels', assets_df.index.values.tolist(), True)
+assets_df.index = range(0, assets_df.shape[0])
+assets_df.columns = mergedfs.columns
+
 print()
-print(liabeq_index)
+print(assets_df)
+
+for i in liabeq.keys():
+    i_pos = liabeq_index[i]
+    if i == 'Total Liabilities and Equity':
+        if not np.isnan(i_pos):
+            liabeq[i] = mergedfs.iloc[i_pos, 1:].tolist()
+        else:
+            liabeq[i] = [np.nan] * (mergedfs.shape[1] - 1)
+    else:
+        if not np.isnan(i_pos):
+            liabeq[i] = np.multiply(np.divide(mergedfs.iloc[i_pos, 1:].tolist(),
+                                              mergedfs.iloc[liabeq_index['Total Liabilities and Equity'], 1:]),
+                                    [100]*len(mergedfs.iloc[i_pos, 1:].tolist()))
+        else:
+            liabeq[i] = [np.nan] * (mergedfs.shape[1] - 1)
+
+liabeq_df = pd.DataFrame.from_dict(liabeq, orient='index')
+liabeq_df.insert(0, 'Labels', liabeq_df.index.values.tolist(), True)
+liabeq_df.index = range(0, liabeq_df.shape[0])
+liabeq_df.columns = mergedfs.columns
+
 print()
-print(incst_index)
+print(liabeq_df)
+
+for i in incst.keys():
+    i_pos = incst_index[i]
+    if not np.isnan(i_pos):
+        incst[i] = mergedfs.iloc[i_pos, 1:].tolist()
+    else:
+        incst[i] = [np.nan] * (mergedfs.shape[1] - 1)
+
+incst_df = pd.DataFrame.from_dict(incst, orient='index')
+incst_df.insert(0, 'Labels', incst_df.index.values.tolist(), True)
+incst_df.index = range(0, incst_df.shape[0])
+incst_df.columns = mergedfs.columns
+
+print()
+print(incst_df)
